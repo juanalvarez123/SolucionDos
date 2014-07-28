@@ -1,0 +1,225 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Gráfica</title>
+    <script src="Scripts/jquery-1.6.4.min.js"></script>
+    <script>
+        
+		var grafica; //Canvas donde se dibuja el plano XY y las coordenadas
+        var xInicial = 30; //Posicion inicial en el plano X
+        var yInicial = 30; //Posicion inicial en el plano Y
+        var xSegundos = 60; //Cantidad de segundos para el plano X
+        var yNumeros = 100; //Cantidad de numeros en el plano Y
+        var vectorPosiciones = null; //Vector que almacena las coordenadas del plano
+        var numero = 1; //Numero de coordenadas almacenadas
+        var connection; //Conexion al Server Socket Console usando la API de HTML 5
+
+        $(document).ready(function () {
+            $('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+            $('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+            $('#txtHost').val('ws://localhost'); //El host se inicializa con el server local
+            $('#txtPuerto').val('54321'); //El puerto se inicializa con el valor por defecto
+            $('#btnValDefectoHost').attr('disabled', false);
+            $('#btnValDefectoPuerto').attr('disabled', false);
+			
+            //Se adicionan 5 segundos / numeros a la grafica para la visualizacion de los valores
+            //en la grafica
+            xSegundos += 5;
+            yNumeros += 5;
+
+            //Se dibuja la grafica vacia
+            dibujarGrafica();
+			
+			//Se inicializa la conexion nula
+			connection = null;
+        });
+
+        function desconectar() {
+            //Se detiene la conexion
+            connection.close();
+            connection = null;
+            alert('Desconectado');
+        }
+		
+		function conectar() {
+		    $('#btnConectar').attr('disabled', true); //Boton conectar deshabilitado
+		    $('#txtHost').attr('disabled', true); //La caja de texto del host se deshabilita
+		    $('#txtPuerto').attr('disabled', true); //La caja de texto del puerto se deshabilita
+		    $('#btnValDefectoHost').attr('disabled', true);
+		    $('#btnValDefectoPuerto').attr('disabled', true);
+			
+            var host = $('#txtHost').val();
+            var puerto = $('#txtPuerto').val();
+            connection = new WebSocket(host + ':' + puerto);
+
+            connection.onopen = function () {
+                //Se inicia la conexion
+                alert('Conexión establecida');
+                $('#btnDesconectar').attr('disabled', false); //Boton desconectar habilitado
+            };
+            connection.onclose = function () {
+				//Se detiene la conexion
+				$('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+				$('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+				$('#txtHost').attr('disabled', false); //La caja de texto del host se habilita
+				$('#txtPuerto').attr('disabled', false); //La caja de texto del puerto se habilita
+				$('#btnValDefectoHost').attr('disabled', false);
+				$('#btnValDefectoPuerto').attr('disabled', false);
+            };
+            connection.onerror = function (error) {
+                $('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+                $('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+                $('#txtHost').attr('disabled', false); //La caja de texto del host se habilita
+                $('#txtPuerto').attr('disabled', false); //La caja de texto del puerto se habilita
+                $('#btnValDefectoHost').attr('disabled', false);
+                $('#btnValDefectoPuerto').attr('disabled', false);
+                alert('Error de conexión');
+            };
+            connection.onmessage = function (suma) {
+				//Se extrae la info de la respuesta
+                suma = suma.data;
+                if (vectorPosiciones == null) {
+                    //Si el vector de posiciones es nulo se inicializa con una sola posicion
+                    vectorPosiciones = {
+                        values: [ { X: "1", Y: suma }, ]
+                    };
+                    numero = 2;
+                } else {
+                    //Si el vector de posiciones NO es nulo se consulta si se debe reinicializar o se deben agregar coordenadas
+                    if (numero > (xSegundos - 5)) {
+                        //Se reinicia el vector (ya que eran mas de 60 segundos) para que la grafica inicie desde 1 
+                        vectorPosiciones = null;
+                        vectorPosiciones = {
+                            values: [
+                            { X: "1", Y: suma }, ]
+                        };
+                        numero = 2;
+                    } else {
+                        //Se agrega una nueva coordenada al vector
+                        vectorPosiciones.values.push({ X: numero, Y: suma });
+                        numero++;
+                    }
+                }
+
+                //Se llama al metodo que dibuja la grafica en el canvas
+                dibujarGrafica();
+            };
+		}
+		
+        function dibujarGrafica() {
+            grafica = document.getElementById('grafica')
+            var c = grafica.getContext('2d');
+
+            //Se limpia el canvas
+            c.clearRect(0, 0, grafica.width, grafica.height);
+            c.beginPath();
+
+            grafica = $('#grafica');
+            var c = grafica[0].getContext('2d');
+
+            c.lineWidth = 2;
+            c.strokeStyle = '#333';
+            c.font = 'arial 8pt';
+            c.textAlign = "center";
+
+            c.beginPath();
+            c.moveTo(xInicial, 0);
+            c.lineTo(xInicial, grafica.height() - yInicial);
+            c.lineTo(grafica.width(), grafica.height() - yInicial);
+            c.stroke();
+
+            //Se dibuja el plano X (Segundos)
+            var xVariacion = 10; //La variacion determina los segmentos de los segundos, en este caso, cada 10 segundos se dibujara un numero
+            var xTamanio = (grafica.width() - xInicial) / (xSegundos / xVariacion);
+            for (var i = 0; i < xSegundos; i += xVariacion) {
+                if (i != 0) {
+                    c.fillText(i, (i / xVariacion * xTamanio) + xInicial, grafica.height() - yInicial + 10);
+                }
+            }
+
+            c.textAlign = "right"
+            c.textBaseline = "middle";
+
+            //Se dibuja el plano Y (Numeros)
+            var yVariacion = 10; //La variacion determina los segmentos de los numeros, en este caso, cada 10 numeros se dibujara un numero
+            var yTamanio = (grafica.height() - yInicial) / (yNumeros / yVariacion);
+            for (var i = 0; i < yNumeros; i += yVariacion) {
+                if (i != 0) {
+                    c.fillText(i, yInicial - 10, (grafica.height() - yInicial) - (i / yVariacion * yTamanio));
+                }
+            }
+
+            c.strokeStyle = '#0066FF';
+            c.lineWidth = 1;
+
+            //Si el vector de posiciones tiene valores se dibujan los puntos en el plano XY
+            if (vectorPosiciones != null) {
+                c.beginPath();
+                c.moveTo(xInicial + (0 * xTamanio / xVariacion) + (Math.PI * 2), grafica.height() - yInicial - (vectorPosiciones.values[0].Y * yTamanio / yVariacion));
+                for (var i = 1; i < vectorPosiciones.values.length; i++) {
+                    c.lineTo(xInicial + (i * xTamanio / xVariacion) + (Math.PI * 2),
+                        grafica.height() - yInicial - (vectorPosiciones.values[i].Y * yTamanio / yVariacion));
+                }
+                c.stroke();
+            }
+
+            c.fillStyle = '#333';
+			
+            //Si el vector de posiciones tiene valores se dibujan las lineas entre los puntos dibujados en el plano
+            if (vectorPosiciones != null) {
+                for (var i = 0; i < vectorPosiciones.values.length; i++) {
+                    c.beginPath();
+                    c.arc(xInicial + (i * xTamanio / xVariacion) + (Math.PI * 2),
+                        grafica.height() - yInicial - (vectorPosiciones.values[i].Y * yTamanio / yVariacion), 2, 0, Math.PI * 2, true);
+                    c.fill();
+                }
+            }
+        }
+
+        function valorDefectoHost() {
+            $('#txtHost').val('ws://localhost'); //El host se inicializa con el server local
+        }
+
+        function valorDefectoPuerto() {
+            $('#txtPuerto').val('54321'); //El puerto se inicializa con el valor por defecto
+        }
+    </script>
+    <style type="text/css">
+        body {
+            padding: 20px 20px 20px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gráfica</h1>
+    <table>
+    <tr>
+        <td style=" vertical-align: middle;">
+            Números
+        </td>
+        <td>
+            <canvas id="grafica" width="700" height="300"></canvas>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td style=" text-align: center;">Segundos</td>
+    </tr>
+    <tr>
+        <td><br /></td>
+    </tr>
+    <tr>
+        <td>Host:</td>
+        <td><input type="text" id="txtHost" name="txtHost" />&nbsp;&nbsp;<input type="button" id="btnValDefectoHost" name="btnValDefectoHost" onclick="valorDefectoHost()" value="Val. defecto" /></td>
+    </tr>
+    <tr>
+        <td>Puerto: </td>
+        <td><input type="text" id="txtPuerto" name="txtPuerto" />&nbsp;&nbsp;<input type="button" id="btnValDefectoPuerto" name="btnValDefectoPuerto" onclick="valorDefectoPuerto()" value="Val. defecto" /></td>
+    </tr>
+    <tr>
+        <td><input type="button" id="btnConectar" name="btnConectar" onclick="conectar()" value="Conectar"/></td>
+        <td><input type="button" id="btnDesconectar" name="btnDesconectar" onclick="desconectar()" value="Desconectar"/></td>
+    </tr>
+</table>
+</body>
+</html>

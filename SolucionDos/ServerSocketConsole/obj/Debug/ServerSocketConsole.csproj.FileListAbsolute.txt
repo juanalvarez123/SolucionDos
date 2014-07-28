@@ -1,0 +1,7 @@
+C:\Users\Usuario\Desktop\SolucionDos\ServerS\bin\Debug\ServerSocketConsole.exe.config
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\bin\Debug\ServerSocketConsole.exe.config
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\bin\Debug\ServerSocketConsole.exe
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\bin\Debug\ServerSocketConsole.pdb
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\obj\Debug\ServerSocketConsole.exe
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\obj\Debug\ServerSocketConsole.pdb
+C:\Users\Usuario\Desktop\SolucionDos\ServerSocketConsole\obj\Debug\ServerSocketConsole.csprojResolveAssemblyReference.cache

@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Generador de Numeros</title>
+    <script src="Scripts/jquery-1.6.4.min.js"></script>
+    <script>
+
+        var numeroInicial = 0; //Limite minimo de generacion del numero aleatorio
+        var numeroFinal = 20; //Limite maximo de generacion del numero aleatorio
+        var numerosEnviados; //Cantidad de numeros enviados al Server Socket Console
+        var connection; //Conexion al Server Socket Console usando la API de HTML 5
+        var iniciaGeneracion; //Bandera para determinar si inicia o se detiene la generacion de numeros aleatorios
+        var milisegundos; //Variable para determinar cada cuanto tiempo se generara un numero aleatorio
+        var cantidadNumeros; //Variable para determinar la cantidad de numeros aleatorios generados a mostrar en pantalla
+        
+        function obtenerNumeroAleatorio() {
+            var numeroAleatorio = Math.floor(Math.random() * (numeroInicial - numeroFinal + 1)) + numeroFinal;
+            return numeroAleatorio;
+        }
+
+        function iniciarGeneracion() {
+            if (iniciaGeneracion) {
+                if (connection != null) {
+                    //connection readyState igual a 1: Conexón esta establecida y la comunicacion es posible
+                    if (connection.readyState == 1) {
+                        var numero = obtenerNumeroAleatorio();
+                        if (numerosEnviados < cantidadNumeros) {
+                            numerosEnviados++;
+                            $('#numeros').append('<li>' + numero + '</li>');
+                        } else {
+                            numerosEnviados = 1;
+                            $('#numeros').html(' ');
+                            $('#numeros').append('<li>' + numero + '</li>');
+                        }
+                        //Se envia el numero generado
+                        connection.send(numero);
+                        //Se llama nuevamente al metodo iniciar Generacion
+                        setTimeout(iniciarGeneracion, milisegundos);
+                    }
+                }
+            }
+        }
+
+        function detenerGeneracion() {
+            iniciaGeneracion = false; //La bandera para iniciar la generacion de numeros aleatorios inicia deshabilitada
+            $('#btnIniciar').attr("disabled", false); //Se habilita el boton iniciar
+            $('#btnDetener').attr("disabled", true); //Se deshabilita el boton detener
+
+            $('#numeros').html(' '); //Se limpia la lista de numeros en pantalla
+            numerosEnviados = 0; //La cantidad de numeros enviados al Web Socket Server inicia en 0
+        }
+
+        $(function () {
+            iniciaGeneracion = false; //La bandera para iniciar la generacion de numeros aleatorios inicia deshabilitada
+            $('#btnIniciar').attr("disabled", true); //Se deshabilita el boton iniciar
+            $('#btnDetener').attr("disabled", true); //Se deshabilita el boton detener
+            $('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+            $('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+            $('#txtHost').val('ws://localhost'); //El host se inicializa con el server local
+            $('#txtPuerto').val('12345'); //El puerto se inicializa con el valor por defecto
+            $('#btnValDefectoHost').attr('disabled', false);
+            $('#btnValDefectoPuerto').attr('disabled', false);
+            milisegundos = 200; //Cada 200 milisegundos se llamara al metodo que genera el numero aleatorio
+            cantidadNumeros = 5; //5 numeros generados aleatoriamente en pantalla
+			
+            //La cantidad de numeros enviados al Web Socket Server inicia en 0
+            numerosEnviados = 0;
+
+            //Se inicializa la conexion nula
+            connection = null;
+        });
+
+        function preIniciarGeneracion() {            
+            iniciaGeneracion = true; //Se habilita la bandera para iniciar la generacion de numeros aleatorios
+            $('#btnIniciar').attr("disabled", true); //Se deshabilita el boton iniciar
+            $('#btnDetener').attr("disabled", false); //Se habilita el boton detener
+        }
+
+        function conectar() {
+            $('#btnConectar').attr('disabled', true); //Boton conectar deshabilitado
+            $('#txtHost').attr('disabled', true); //La caja de texto del host se deshabilita
+            $('#txtPuerto').attr('disabled', true); //La caja de texto del puerto se deshabilita
+            $('#btnValDefectoHost').attr('disabled', true);
+            $('#btnValDefectoPuerto').attr('disabled', true);
+
+            var host = $('#txtHost').val();
+            var puerto = $('#txtPuerto').val();
+            connection = new WebSocket(host + ':' + puerto);
+
+            connection.onopen = function () {
+                //Se inicia la conexion
+                alert('Conexión establecida');
+                $('#btnDesconectar').attr('disabled', false); //Boton desconectar habilitado
+                $('#btnIniciar').attr('disabled', false); //Boton iniciar generador habilitado
+                $('#btnDetener').attr('disabled', true); //Boton detener generador deshabilitado
+            };
+            connection.onclose = function () {
+                $('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+                $('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+                $('#btnIniciar').attr('disabled', true); //Boton iniciar generador deshabilitado
+                $('#btnDetener').attr('disabled', true); //Boton detener generador deshabilitado
+                $('#txtHost').attr('disabled', false); //La caja de texto del host se habilita
+                $('#txtPuerto').attr('disabled', false); //La caja de texto del puerto se habilita
+                $('#btnValDefectoHost').attr('disabled', false);
+                $('#btnValDefectoPuerto').attr('disabled', false);
+
+                $('#numeros').html(' '); //Se limpia la lista de numeros en pantalla
+                numerosEnviados = 0; //La cantidad de numeros enviados al Server Socket Console inicia en 0
+            };
+            connection.onmessage = function (numero) {
+                console.log('Número enviado: ' + numero.data);
+            }
+            connection.onerror = function (error) {
+                $('#btnIniciar').attr("disabled", true); //Se deshabilita el boton iniciar
+                $('#btnDetener').attr("disabled", true); //Se deshabilita el boton detener
+                $('#btnConectar').attr('disabled', false); //Boton conectar habilitado
+                $('#btnDesconectar').attr('disabled', true); //Boton desconectar deshabilitado
+                $('#txtHost').attr('disabled', false); //La caja de texto del host se habilita
+                $('#txtPuerto').attr('disabled', false); //La caja de texto del puerto se habilita
+                $('#btnValDefectoHost').attr('disabled', false);
+                $('#btnValDefectoPuerto').attr('disabled', false);
+            
+                $('#numeros').html(' '); //Se limpia la lista de numeros en pantalla
+                numerosEnviados = 0; //La cantidad de numeros enviados al Server Socket Console inicia en 0
+                alert('Error de conexión');
+            }
+        }
+
+        function desconectar() {
+            //Se detiene la conexion
+            connection.close();
+            connection = null;
+
+            $('#numeros').html(' '); //Se limpia la lista de numeros en pantalla
+            numerosEnviados = 0; //La cantidad de numeros enviados al Server Socket Console inicia en 0
+
+            alert('Desconectado');
+        }
+
+        function valorDefectoHost() {
+            $('#txtHost').val('ws://localhost'); //El host se inicializa con el server local
+        }
+
+        function valorDefectoPuerto() {
+            $('#txtPuerto').val('12345'); //El puerto se inicializa con el valor por defecto
+        }
+
+    </script>
+    <style type="text/css">
+        body {
+            padding: 20px 20px 20px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de números aleatorios</h1>
+    <table style=" width: 500px;">
+        <tr>
+            <td colspan="2" style=" text-align: justify;">
+                Los números serán generados aleatoriamente cada 200 milisegundos. El servidor se encargará cada segundo de realizar la suma y enviarla a la gráfica.
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style=" text-align: justify;">
+                <br />
+            </td>
+        </tr>
+        <tr>
+            <td>Host:</td>
+            <td><input type="text" id="txtHost" name="txtHost" />&nbsp;&nbsp;<input type="button" id="btnValDefectoHost" name="btnValDefectoHost" onclick="valorDefectoHost()" value="Val. defecto" /></td>
+        </tr>
+        <tr>
+            <td>Puerto: </td>
+            <td><input type="text" id="txtPuerto" name="txtPuerto" />&nbsp;&nbsp;<input type="button" id="btnValDefectoPuerto" name="btnValDefectoPuerto" onclick="valorDefectoPuerto()" value="Val. defecto" /></td>
+        </tr>
+        <tr>
+            <td><input type="button" id="btnConectar" name="btnConectar" onclick="conectar()" value="Conectar"/></td>
+            <td><input type="button" id="btnDesconectar" name="btnDesconectar" onclick="desconectar()" value="Desconectar"/></td>
+        </tr>
+        <tr>
+            <td><input type="button" id="btnIniciar" name="btnIniciar" value="Iniciar generador" onclick="preIniciarGeneracion(); iniciarGeneracion();" /></td>
+            <td><input type="button" id="btnDetener" name="btnDetener" value="Detener generador" onclick="detenerGeneracion()" /></td>
+        </tr>
+        <tr style=" text-align: left;">
+            <td style=" vertical-align: top;"><br />Números:</td>
+            <td>
+                <ul id="numeros"></ul>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
